@@ -1,0 +1,269 @@
+---
+title: "Statystyczn analiza danych - projekt dotyczący badania nad rynkiem samochodowym"
+author: "Aldona Swirad"
+date: "`r Sys.Date()`"
+output:
+  pdf_document: default
+  html_document:
+    theme: readable
+    fig_width: 9
+    highlight: kate
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+<style>
+h4 {
+    margin-top:2.5em
+}
+h4.author, h4.date  {
+    margin-top:0em
+}
+</style>
+
+# Spis treści
+
+
+# Wstęp
+
+#### Źródło
+Dane pochodzą z ogólnodostępnej platformy Kaggle. 
+https://www.kaggle.com/datasets/gagandeep16/car-sales
+
+#### Opis danych
+Wybrane dane dotyczą samochodów. Możemy tam znaleźć informacje na temat ich poszczególnyhc cech, takich jak:
+
+* Manufacturer - Marka
+* Model - model
+* Sales_in_thousands - sprzedaż w tysiącach
+- __year_resale_value - roczna wartość odsprzedaży 
+- Vehicle_type - rodzaj 
+- Price_in_thousands - cena w tysiącach
+- Engine_size - pojemność silnika
+- Horsepower - liczba koni mechanicznych
+- Wheelbase - rozstaw osi
+- Width - szerokokść
+- Length - długość
+- Curb_weight - masa wlasna pojazdu
+- Fuel_capacity - pojemnosc baku
+- Fuel_efficiency - efektywnosc spalania
+
+Chciałam wybrać temat, który mnie zainteresuje i pozwoli na zdobycie praktycznych umiejętności w analizie danych. Ze względu na moje osobiste zainteresowania oraz wymagania akademickie, analiza danych na temat samochodów wydała mi się interesującym wyborem. Jestem ciekawa zależności między różnymi parametrami samochodów, takimi jak moc silnika, czy cena oraz jakie wnioski można wyciągnąć na podstawie analizy statystycznej takich danych. Ponadto, widzę praktyczne zastosowanie takiej analizy w przemyśle motoryzacyjnym, co również mnie zainteresowało i skłoniło do wyboru tego tematu do mojego projektu.
+
+#### Wczytanie danych i ich obróbka
+
+```{r, warning=FALSE, message=FALSE}
+# użyte biblioteki
+library(e1071)
+library(tidyverse)
+library(hrbrthemes)
+library(viridis)
+## wczytywanie danych
+setwd('D:/IiAD sem_4/Statystyka/Projekt_SAD')
+
+cars <- read.csv('Car_sales.csv', header = T, sep = ',')
+
+cars <- na.omit(cars)
+colnames(cars)[3] <- "Sales"
+colnames(cars)[6] <- "Price"
+cars$Sales <- cars$Sales*1000
+cars$Price <- cars$Price*1000
+cars <- cars[, -c(15,16)]
+```
+#### Opis wybranych bibliotek
+1. library(e1071):
+Biblioteka "e1071" jest jednym z najważniejszych pakietów w języku R dla analizy danych i uczenia maszynowego. Zapewnia różnorodne narzędzia i funkcje do klasyfikacji, regresji, analizy skupień i wiele innych technik statystycznych. W szczególności, biblioteka e1071 dostarcza implementacje popularnych algorytmów uczenia maszynowego, takich jak maszyny wektorów nośnych (SVM), metody klasyfikacji Bayesa i wiele innych. Jest to niezwykle przydatne narzędzie dla badaczy i analityków danych, którzy chcą wykorzystać zaawansowane techniki analizy danych w języku R.
+
+2. library(tidyverse):
+Biblioteka "tidyverse" to zestaw kilku powiązanych pakietów R, które są wykorzystywane do manipulacji, wizualizacji i analizy danych. W skład tidyverse wchodzą popularne pakiety, takie jak ggplot2, dplyr, tidyr i wiele innych. Dzięki tidyverse możesz łatwo przeprowadzać zaawansowane operacje na danych, takie jak filtrowanie, sortowanie, grupowanie, łączenie danych z różnych źródeł itp. Biblioteka ta jest ceniona za spójność i czytelność kodu, co ułatwia pracę z danymi w R.
+
+3. library(hrbrthemes):
+Biblioteka "hrbrthemes" to pakiet R zawierający zestaw tematów graficznych (themes) do wykorzystania w pakiecie ggplot2. Dostarcza wiele estetycznych i profesjonalnie wyglądających tematów, które można stosować do tworzenia wykresów o wysokiej jakości. Hrbrthemes oferuje różnorodne opcje kolorystyczne, układy i style czcionek, które mogą być dostosowane do konkretnych potrzeb wizualizacji danych. Jest to przydatne narzędzie dla osób, które chcą poprawić estetykę swoich wykresów i prezentacji danych.
+
+4. library(viridis):
+Biblioteka "viridis" to pakiet R dostarczający zestaw wysokiej jakości kolorowych map gradientowych, które są szczególnie przydatne przy tworzeniu wizualizacji danych. Kolorowe mapy gradientowe viridis są zaprojektowane tak, aby były czytelne również dla osób z deficytami wzroku, dzięki czemu są popularne w dziedzinie wizualizacji naukowych i statystycznych. Biblioteka viridis oferuje różne palety kolorów, które można łatwo stosować w pakiecie ggplot2 lub innych narzędziach do wizualizacji danych w R.
+
+#### Charakterystyki liczbowe
+
+##### Srednia cena wzgledem marki
+```{r}
+# obliczanie sredniej
+#srednia wzgledem marki (grupowanie)
+vprices <- c()
+vcounter <- c()
+price <- cars$Price[1]
+counter <- 0
+
+
+
+for (i in 2:length(cars$Price))
+  if (cars$Manufacturer[i-1]==cars$Manufacturer[i]){
+    price <- price + cars$Price[i]
+    counter <- counter + 1
+    if(i==length(cars$Price)){
+      price <- price + cars$Price[i]
+      counter <- counter + 1
+      vprices <- append(vprices, price)
+      vcounter <- append(vcounter, counter)
+    }
+  }else{
+    price <- price + cars$Price[i]
+    counter <- counter + 1
+    vprices <- append(vprices, price)
+    vcounter <- append(vcounter, counter)
+    counter <- 0
+    price <- 0
+  }
+
+#srednie
+avg_by_manu <- vprices/vcounter
+```
+#### Wykres słupkowy średnich cen
+```{r, echo = F}
+barplot(avg_by_manu, col = rainbow(35), names.arg=unique(cars$Manufacturer), las=2)
+```
+
+#### Odchylenie standardowe średnich cen względem marek
+```{r}
+# odchylenie
+stand_dev <- sd(avg_by_manu)
+```
+```{r, echo = F}
+stand_dev
+```
+
+#### Dominanta dla rozmiarów silników
+```{r}
+# dominanta
+getmode <- function(v) {
+   uniqv <- unique(v)
+   uniqv[which.max(tabulate(match(v, uniqv)))]
+}
+getmode(cars$Engine_size)
+```
+
+#### Kwantyle wśród rozmiarów silników 
+```{r}
+# kwantyle
+kwantyle <- quantile(cars$Engine_size)
+```
+```{r, echo = F}
+kwantyle
+```
+#### Korelacja między wielkością silnika, a jego mocą
+```{r}
+#korelacja
+plot(cars$Engine_size, cars$Horsepower, xlab = 'Rozmiar silnika', ylab = 'Konie mechaniczne')
+```
+
+```{r, echo = F}
+cor(cars$Engine_size, cars$Horsepower,  method = "pearson", use = "complete.obs")
+```
+
+#### Rozkład wartości mocy silnika 
+```{r}
+#rozklad
+rozklad_hp <- plot(density(cars$Horsepower), main = 'Rozkład wartości mocy silnika', ylab = 'ilość samochodów o danej mocy', xlab = 'moc silnika')
+```
+
+> Współczynnik zmienności
+
+```{r}
+#wspolczynnik zmiennosci
+cv <- sd(cars$Horsepower)/mean(cars$Horsepower)
+```
+```{r, echo = F}
+cv
+```
+> Współczynnik asymetrii
+
+```{r}
+as <- 3*(mean(cars$Horsepower)-median(cars$Horsepower))/sd(cars$Horsepower)
+```
+```{r, echo = F}
+as
+```
+> Współczynnik splaszczenia
+
+```{r}
+kurtoza <- moment(cars$Horsepower, order=4, center=TRUE)/(sd(cars$Horsepower)^3)
+```
+```{r, echo = F}
+kurtoza
+```
+
+#### Wykres pudełkowy efektywności spalania 
+```{r, warning=FALSE, message=FALSE, results='hide'}
+#wykres pudełkowy
+
+ggplot(cars, aes(x=as.factor(cars$Vehicle_type), y=cars$Fuel_efficiency), ) + 
+    geom_boxplot(fill="slateblue", alpha=0.2) +
+    xlab("typ samochodu")+
+ylab('efektywość spalania')
+```
+
+## Hipotezy statystyczne
+
+
+### Średnia cena samochodu to 60 000
+- H0-Średnia cena samochodu to 60 000
+- H1-Średnia cena samochodu nie jest równa 60 000
+- poziom istotności $\alpha$ - 0,1
+```{r}
+t.test(cars$Sales, mu=60000, alternalive="less", conf.level = 0.1)
+
+```
+
+```{r}
+#Średnia cena samochodu
+mean(cars$Sales)
+
+```
+
+Wartość funkcji testującej należy do obszaru krytycznego, więc H0 odrzucamy. Średnia samochodu dla populacji nie wynosi 60000.
+
+### Cena samochodów ma rozkład normalny
+- H0-Cena samochodów ma rozkład normalny
+- H1-Cena samochodów nie ma rozkładu normalnego
+- poziom istotności $\alpha$ - 0,1
+```{r}
+shapiro.test(cars$Sales)
+
+```
+Wartość p < 0.05, więc H0 odrzucamy. Cena samochódów nie ma rozkładu noramalnego.
+
+```{r}
+plot(density(cars$Sales), ylab = '', xlab = ' ', main='')
+
+```
+
+### Rozkład pojemności silnika i mocy samochodu jest podobny
+```{r}
+ks.test(cars$Engine_size,cars$Horsepower)
+
+```
+
+### 
+
+### Wnioski
+
+Dzięki szczegółowej analizie jesteśmy w stanie poznać badany przez nas temat, np:rynek samochodowy oraz wyciągać wnioski i odszukać nawet nieintuicyjne fakty. Projekt pomógł mi w głębszym zaznajomieniu się z używaniem narzędzi statystycznych. Poszerzyłam także swoją znajomość języka R oraz środowiska RStudio. Powyższy projekt jest podstawą do dalszego zagłębiania się w statystykę od jej strony prkatycznej, a poznane umiejętności mogą okazać się bardzo przydatne w przyszłej pracy.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
